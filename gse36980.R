@@ -24,12 +24,17 @@ library(magrittr)
 library(tidyr)
 library(ggnewscale)
 library(msigdbr)
-library(readxl)
-library(umap)
+library(DESeq2)
+library(devtools)
+library(goseq)
+library(oligo)
 #PCA
 library(simpleaffy)
 library(tidyverse)
 library(ggfortify)
+#oligo
+library(RCurl)
+library(biomaRt)
 
 #Metadata import
 
@@ -59,17 +64,21 @@ df <- exprs(norm)
 rma_boxplot <- boxplot(df, main="Relative Signal BoxPlot map", ylab="Relative log expression signal-RMA", las=2)
 
 #Annotation
-
 ID <- rownames(gse)
-annotation_eset <- annotateEset(rma, pd.hugene.1.0.st.v1, columns = c("PROBEID", "ENTRIZID", "SYMBOL"))
+mart <- useEnsembl(biomart = "ensembl", 
+                   dataset = "hsapiens_gene_ensembl", 
+                   mirror = "useast")
+gene_list <- getBM(attributes=c('affy_hugene_1_0_st_v1', 'hgnc_symbol'), 
+                   filters = 'affy_hugene_1_0_st_v1', 
+                   values = ID, 
+                   mart = mart)
+gene_list <- na.omit(gene_list)
+
+e <- exprs(rma)
 
 probe <- AnnotationDbi::select(hgu133plus2.db, keys = ID,  columns = "SYMBOL")
 duplicate_probeID <- probe[!duplicated(probe$PROBEID),]
-
-rma_exprs <- Biobase::exprs(rma)
-
 table_merge <- merge(x = duplicate_probeID, y = rma_exprs, by.x = "PROBEID", by.y = "row.names")
-
 table_merge <- table_merge[!duplicated(table_merge$SYMBOL),]
 table_merge <- na.omit(table_merge)
 rownames(table_merge) <- table_merge$SYMBOL
@@ -77,14 +86,14 @@ annotated <- table_merge[-c(1,2)]
 
 #Gene filtering
 
-mean <- rowMeans(annotated)
-remove_lower_0.02 <- annotated[which(mean > 0.02),]
+mean <- rowMeans(e)
+remove_lower_0.02 <- e[which(mean > 0.02),]
 geneFilt <- quantile(mean, p=0.02)
-geneFilt <- annotated[which(mean>geneFilt),]
+geneFilt <- e[which(mean>geneFilt),]
 
 #limma
 #creating model
-CN <- data.frame(Tissue = metadata$`title`)
+CN <- data.frame(Tissue = metadata$title)
 rownames(CN) <- rownames(metadata)
 CN$Tissue <- ifelse(str_detect(CN$Tissue, regex("patient")), 1, 0)
 matrix <- model.matrix(~ Tissue, CN)
