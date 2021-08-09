@@ -31,7 +31,7 @@ library(simpleaffy)
 library(tidyverse)
 library(ggfortify)
 
-#metadata import
+#Metadata import
 
 gse <- ReadAffy(celfile.path = "GSE36980_RAW")
 gse36980 <- getGEO(filename = "GSE36980_series_matrix.txt")
@@ -39,43 +39,24 @@ metadata <- gse36980@phenoData@data
 CN <- metadata[c("title")]
 CN_1 <- metadata[c("title")]
 
-#data normalisation
+#Data normalisation
 
 rma <- rma(gse) 
 
-#Raw Data Plot
+#PCA plot
 
 colour <- c(rep('AD-Hi', 1), rep('AD-FC',15), rep('normal-FC', 18), rep('AD-TC', 10), rep('normal-TC', 19), rep('AD-Hi', 7), rep('normal-Hi', 10))
-rawGSE <- exprs(gse)
-pca_OG <- prcomp(t(rawGSE), scale. = T)
+rawGSE <- exprs(rma)
+pca_OG <- prcomp(t(rawGSE), scale. = T, center = T)
 pca_OG_df <- as.data.frame(pca_OG$x)
-data_PCA <- data.frame(pc1, pc2, colour)
 PCA_raw <- ggplot(pca_OG_df, aes(x=PC1, y=PC2, color=colour))+ geom_point() + stat_ellipse() +
   labs(title = "Raw Data PCA Plot")
-
-#UMAP
-
-
-
-#Normalized Plot
-normalized <- rma(gse)
-normalizedexprs <- exprs(normalized)
-pca_normalized <- prcomp(normalizedexprs, scale=F, center=F)
-pca_normalized <- as.data.frame(pca_normalized$rotation)
-
-pca_normalized2 <- cbind(pca_normalized, new_col = colour)
-
-PCA_normalised <- ggplot(pca_normalized2, aes(x=PC1, y=PC2, color=colour))+ geom_point() + stat_ellipse() +
-  labs(title = "Normalized Data PCA Plot") 
 
 
 #rma normalisation boxplot 
 norm <- rma(gse)
 df <- exprs(norm)
 rma_boxplot <- boxplot(df, main="Relative Signal BoxPlot map", ylab="Relative log expression signal-RMA", las=2)
-
-
-
 
 #Annotation
 
