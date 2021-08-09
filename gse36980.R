@@ -61,6 +61,7 @@ rma_boxplot <- boxplot(df, main="Relative Signal BoxPlot map", ylab="Relative lo
 #Annotation
 
 ID <- rownames(gse)
+annotation_eset <- annotateEset(rma, pd.hugene.1.0.st.v1, columns = c("PROBEID", "ENTRIZID", "SYMBOL"))
 
 probe <- AnnotationDbi::select(hgu133plus2.db, keys = ID,  columns = "SYMBOL")
 duplicate_probeID <- probe[!duplicated(probe$PROBEID),]
