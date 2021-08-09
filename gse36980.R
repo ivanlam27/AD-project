@@ -31,13 +31,15 @@ library(simpleaffy)
 library(tidyverse)
 library(ggfortify)
 
-#metadata
+#metadata import
 
-gse <- ReadAffy(celfile.path = "GSE36980_RAW/_RAW")
+gse <- ReadAffy(celfile.path = "GSE36980_RAW")
 gse36980 <- getGEO(filename = "GSE36980_series_matrix.txt")
-metadata <- gse4107@phenoData@data
+metadata <- gse36980@phenoData@data
 CN <- metadata[c("title")]
 CN_1 <- metadata[c("title")]
+
+#data normalisation
 
 rma <- rma(gse) 
 
