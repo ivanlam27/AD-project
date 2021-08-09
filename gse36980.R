@@ -33,8 +33,8 @@ library(ggfortify)
 
 #metadata
 
-gse <- ReadAffy(celfile.path = "gse4107/GSE4107_RAW")
-gse4107 <- getGEO(filename = "gse4107/GSE4107_series_matrix.txt")
+gse <- ReadAffy(celfile.path = "GSE36980_RAW/_RAW")
+gse36980 <- getGEO(filename = "GSE36980_series_matrix.txt")
 metadata <- gse4107@phenoData@data
 CN <- metadata[c("title")]
 CN_1 <- metadata[c("title")]
