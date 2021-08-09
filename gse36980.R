@@ -93,9 +93,9 @@ geneFilt <- e[which(mean>geneFilt),]
 
 #limma
 #creating model
-CN <- data.frame(Tissue = metadata$title)
+CN <- data.frame(patient = metadata$title)
 rownames(CN) <- rownames(metadata)
-CN$Tissue <- ifelse(str_detect(CN$Tissue, regex("patient")), 1, 0)
+CN$Tissue <- ifelse(str_detect(CN$patient, regex(".AD")), 1, 0)
 matrix <- model.matrix(~ Tissue, CN)
 fit <- limma::lmFit(remove_lower_0.02, matrix)
 efit <- eBayes(fit)
