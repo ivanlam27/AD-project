@@ -25,7 +25,7 @@ library(tidyr)
 library(ggnewscale)
 library(msigdbr)
 library(readxl)
-
+library(umap)
 #PCA
 library(simpleaffy)
 library(tidyverse)
@@ -44,16 +44,18 @@ CN_1 <- metadata[c("title")]
 rma <- rma(gse) 
 
 #Raw Data Plot
-colour <- c(rep('cancer',12), rep('normal', 10))
 
+colour <- c(rep('AD-Hi', 1), rep('AD-FC',15), rep('normal-FC', 18), rep('AD-TC', 10), rep('normal-TC', 19), rep('AD-Hi', 7), rep('normal-Hi', 10))
 rawGSE <- exprs(gse)
-pca_OG <- prcomp(rawGSE, scale=F, center=F)
-pca_OG <- as.data.frame(pca_OG$rotation)
-
-pca_2 <- cbind(pca_OG, new_col = colour)
-
-PCA_raw <- ggplot(pca_2, aes(x=PC1, y=PC2, color=colour))+ geom_point() + stat_ellipse() +
+pca_OG <- prcomp(t(rawGSE), scale. = T)
+pca_OG_df <- as.data.frame(pca_OG$x)
+data_PCA <- data.frame(pc1, pc2, colour)
+PCA_raw <- ggplot(pca_OG_df, aes(x=PC1, y=PC2, color=colour))+ geom_point() + stat_ellipse() +
   labs(title = "Raw Data PCA Plot")
+
+#UMAP
+
+
 
 #Normalized Plot
 normalized <- rma(gse)
