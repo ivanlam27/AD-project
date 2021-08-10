@@ -76,22 +76,17 @@ gene_list_df <- as.data.frame(gene_list)
 duplicate_probeID <- gene_list_df[!duplicated(gene_list_df$hgnc_symbol),]
 e <- exprs(rma)
 table_merge <- merge(x = duplicate_probeID, y = e, by.x = "affy_hugene_1_0_st_v1", by.y = "row.names")
-
-gene_list_df <- na.omit(duplicate_probeID)
-
-
-probe <- AnnotationDbi::select(hgu133plus2.db, keys = ID,  columns = "SYMBOL")
-table_merge <- table_merge[!duplicated(table_merge$SYMBOL),]
+table_merge <- table_merge[!duplicated(table_merge$hgnc_symbol),]
 table_merge <- na.omit(table_merge)
-rownames(table_merge) <- table_merge$SYMBOL
+rownames(table_merge) <- table_merge$hgnc_symbol
 annotated <- table_merge[-c(1,2)]
 
 #Gene filtering
 
-mean <- rowMeans(e)
-remove_lower_0.02 <- e[which(mean > 0.02),]
+mean <- rowMeans(annotated)
+remove_lower_0.02 <- annotated[which(mean > 0.02),]
 geneFilt <- quantile(mean, p=0.02)
-geneFilt <- e[which(mean>geneFilt),]
+geneFilt <- annotated[which(mean>geneFilt),]
 
 #limma
 #creating model
