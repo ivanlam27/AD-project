@@ -38,15 +38,16 @@ library(biomaRt)
 
 #Metadata import
 
-gse <- ReadAffy(celfile.path = "GSE36980_RAW")
+gse <- ReadAffy(celfile.path = "GSE36980_RAW_Hi/")
 gse36980 <- getGEO(filename = "GSE36980_series_matrix.txt")
 metadata <- gse36980@phenoData@data
+metadata <- metadata[63:80,]
 CN <- metadata[c("title")]
 CN_1 <- metadata[c("title")]
 
 #Data normalisation
 
-rma <- rma(gse) 
+rma <- affy::rma(gse) 
 
 #PCA plot
 
