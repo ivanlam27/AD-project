@@ -72,13 +72,15 @@ gene_list <- getBM(attributes=c('affy_hugene_1_0_st_v1', 'hgnc_symbol'),
                    filters = 'affy_hugene_1_0_st_v1', 
                    values = ID, 
                    mart = mart)
-gene_list <- na.omit(gene_list)
-
+gene_list_df <- as.data.frame(gene_list)
+duplicate_probeID <- gene_list_df[!duplicated(gene_list_df$hgnc_symbol),]
 e <- exprs(rma)
+table_merge <- merge(x = duplicate_probeID, y = e, by.x = "affy_hugene_1_0_st_v1", by.y = "row.names")
+
+gene_list_df <- na.omit(duplicate_probeID)
+
 
 probe <- AnnotationDbi::select(hgu133plus2.db, keys = ID,  columns = "SYMBOL")
-duplicate_probeID <- probe[!duplicated(probe$PROBEID),]
-table_merge <- merge(x = duplicate_probeID, y = rma_exprs, by.x = "PROBEID", by.y = "row.names")
 table_merge <- table_merge[!duplicated(table_merge$SYMBOL),]
 table_merge <- na.omit(table_merge)
 rownames(table_merge) <- table_merge$SYMBOL
@@ -93,21 +95,18 @@ geneFilt <- e[which(mean>geneFilt),]
 
 #limma
 #creating model
-CN <- data.frame(patient = metadata$title)
-rownames(CN) <- rownames(metadata)
-CN$Tissue <- ifelse(str_detect(CN$patient, regex(".AD")), 1, 0)
-matrix <- model.matrix(~ Tissue, CN)
+ADorNor <- data.frame(patient = metadata$title)
+rownames(ADorNor) <- rownames(metadata)
+ADorNor$patient <- ifelse(str_detect(ADorNor$patient, regex(".AD")), 1, 0)
+matrix <- model.matrix(~ patient, ADorNor)
 fit <- limma::lmFit(remove_lower_0.02, matrix)
 efit <- eBayes(fit)
-genes=geneNames(gse)
+genes <- geneNames(gse)
 limma_output <- topTable(efit, adjust.method="fdr", sort.by=, n = 50000)
-EnhancedVolcano( toptable = limma_output, 
-                 lab = rownames(limma_output), 
-                 x = "logFC", 
-                 y = "P.Value")
+volcano <- EnhancedVolcano(toptable = limma_output, lab = rownames(limma_output), x = "logFC", y = "P.Value")
 
 #heatmap
-group <- data.frame(Tissue = metadata$title)
+group <- data.frame(patient = metadata$title)
 top50 <- topTable(efit, number=50) 
 filt_50 <- data.frame(geneFilt[rownames(geneFilt) %in% rownames(top50),])
 heatmap_4107 <- pheatmap(filt_50, main="Top 50 DEG", 
@@ -115,7 +114,7 @@ heatmap_4107 <- pheatmap(filt_50, main="Top 50 DEG",
                          labels_col = colnames(filt_50),
                          annotation_row=group, 
                          annotation_col=group, 
-                         annotation_colors=list(Tissue=c(Cancer="red", Normal="blue")))
+                         annotation_colors=list(patient=c(AD ="red", Normal="blue")))
 
 #DEG 
 
