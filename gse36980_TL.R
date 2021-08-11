@@ -163,11 +163,11 @@ cnetplot_GCN <- cnetplot(convert, foldChange = arrange_FC, categorySize = "pvalu
 
 #Global/universal gene set enrichment analysis (GSEA)
 gene_set <- msigdbr(species = "Homo sapiens", category = "H")
-h <- gene_set %>% select (gs_name, entrez_gene)
+h <- gene_set %>% dplyr::select (gs_name, entrez_gene)
 
-removed_duplicate <- Entrezid_symbol[!duplicated(Entrezid_symbol$SYMBOL),]
+removed_duplicate <- Entrezid_symbol[!duplicated(Entrezid_symbol$hgnc_symbol),]
 removed_duplicate <- na.omit(removed_duplicate)
-rowname_symbol <- removed_duplicate$SYMBOL
+rowname_symbol <- removed_duplicate$hgnc_symbol
 rownames(removed_duplicate) <- rowname_symbol
 GSEA_merge <- merge(x = removed_duplicate, y = limma_output, by = "row.names")
 GSEA_logFC <- as.vector(GSEA_merge$logFC)
