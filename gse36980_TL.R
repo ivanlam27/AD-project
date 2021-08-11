@@ -178,6 +178,6 @@ sorted <- sort(GSEA_logFC, decreasing = TRUE)
 GSEA_analysis <- GSEA(sorted, TERM2GENE = h)
 GSEA_plot <- gseaplot(GSEA_analysis, geneSetID = 2)
 
-for_module_6 <- names(filtered_FC)
-write.table(arrange_FC, file = 'DEG.txt')
+# for_module_6 <- names(filtered_FC)
+# write.table(arrange_FC, file = 'DEG.txt')
 
