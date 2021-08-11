@@ -125,7 +125,7 @@ element_names <- rownames(limma_output)
 names(logFC_vec) <- element_names
 
 #threshold + filtering (sorted, named, numeric vector)
-filtered_FC <- logFC_vec[logFC_vec < -1]
+filtered_FC <- logFC_vec[logFC_vec > 0.4]
 arrange_FC <- sort(filtered_FC, decreasing = TRUE)
 topDEG <- data.frame(arrange_FC)
 
@@ -144,17 +144,17 @@ selected <- unique(selected)
 rownames(selected) <- 1:nrow(selected)
 
 #gene ontology + boxplots
-CC <- enrichGO(selected$ENTREZID, OrgDb = org.Hs.eg.db, ont = "CC" , readable = T )
+CC <- enrichGO(selected$entrezgene_id, OrgDb = org.Hs.eg.db, ont = "CC" , readable = T )
 barplot_GO_CC <- barplot(CC)
 
-MF <- enrichGO(selected$ENTREZID, OrgDb = org.Hs.eg.db, ont = "MF" , readable = T )
+MF <- enrichGO(selected$entrezgene_id, OrgDb = org.Hs.eg.db, ont = "MF" , readable = T )
 barplot_GO_MF <- barplot(MF)
 
-BP <- enrichGO(selected$ENTREZID, OrgDb = org.Hs.eg.db, ont = "BP" , readable = T )
+BP <- enrichGO(selected$entrezgene_id, OrgDb = org.Hs.eg.db, ont = "BP" , readable = T )
 barplot_GO_BP <- barplot(BP)
 
 #KEGG
-KEGG <- enrichKEGG(selected$ENTREZID, pvalueCutoff = 0.05)
+KEGG <- enrichKEGG(selected$entrezgene_id, pvalueCutoff = 0.05)
 dotplot_KEGG <- dotplot(KEGG)
 
 #Gene-concept network
