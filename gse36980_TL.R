@@ -38,10 +38,10 @@ library(biomaRt)
 
 #Metadata import
 
-gse <- ReadAffy(celfile.path = "GSE36980_RAW_FC/")
+gse <- ReadAffy(celfile.path = "GSE36980_RAW_TL/")
 gse36980 <- getGEO(filename = "GSE36980_series_matrix.txt")
 metadata <- gse36980@phenoData@data
-metadata <- metadata[1:33,]
+metadata <- metadata[34:62,]
 CN <- metadata[c("title")]
 CN_1 <- metadata[c("title")]
 
@@ -51,7 +51,7 @@ rma <- affy::rma(gse)
 
 #PCA plot
 
-colour <- c(rep('AD-FC', 15), rep('Normal-FC', 18))
+colour <- c(rep('AD-TL', 10), rep('Normal-TL', 19))
 rawGSE <- exprs(rma)
 pca_OG <- prcomp(t(rawGSE), scale. = T, center = T)
 pca_OG_df <- as.data.frame(pca_OG$x)
@@ -79,7 +79,7 @@ table_merge <- merge(x = duplicate_probeID, y = e, by.x = "affy_hugene_1_0_st_v1
 table_merge <- table_merge[!duplicated(table_merge$hgnc_symbol),]
 table_merge <- na.omit(table_merge)
 rownames(table_merge) <- table_merge$hgnc_symbol
-annotated <- table_merge[-c(dim1,2)]
+annotated <- table_merge[-c(1,2)]
 
 #Gene filtering
 
@@ -123,16 +123,21 @@ element_names <- rownames(limma_output)
 names(logFC_vec) <- element_names
 
 #threshold + filtering (sorted, named, numeric vector)
-filtered_FC <- logFC_vec[logFC_vec > 1]
+filtered_FC <- logFC_vec[logFC_vec < -1]
 arrange_FC <- sort(filtered_FC, decreasing = TRUE)
 topDEG <- data.frame(arrange_FC)
 
 #selecting symbol and entrezid
-Entrezid_symbol <- AnnotationDbi::select(hgu133plus2.db, keys = ID, 
-                                         columns = c("SYMBOL", "ENTREZID"))
-df_entrezid <- Entrezid_symbol %>% dplyr::select("SYMBOL", "ENTREZID")
+Entrezid_symbol <- getBM(
+  attributes = c('hgnc_symbol', 'entrezgene_id'),
+  filters = 'affy_hugene_1_0_st_v1',
+  values = ID,
+  mart = mart
+)
+df_entrezid <- Entrezid_symbol %>% dplyr::select('hgnc_symbol', "entrezgene_id")
+df_entrezid <- na.omit(df_entrezid)
 names <- names(arrange_FC)
-selected <- df_entrezid[df_entrezid$SYMBOL %in% names, ]
+selected <- df_entrezid[df_entrezid$hgnc_symbol %in% names, ]
 selected <- unique(selected)
 rownames(selected) <- 1:nrow(selected)
 
