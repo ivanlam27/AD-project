@@ -38,7 +38,8 @@ library(biomaRt)
 
 #Metadata import
 
-gse <- ReadAffy(celfile.path = "GSE36980_RAW_TL/")
+celFiles <- list.files("GSE36980_RAW_TL/", full =TRUE)
+gse <- read.celfiles(celFiles)
 gse36980 <- getGEO(filename = "GSE36980_series_matrix.txt")
 metadata <- gse36980@phenoData@data
 metadata <- metadata[34:62,]
@@ -47,7 +48,7 @@ CN_1 <- metadata[c("title")]
 
 #Data normalisation
 
-rma <- affy::rma(gse) 
+rma <- rma(gse) 
 
 #PCA plot
 
@@ -64,7 +65,7 @@ df <- exprs(rma)
 rma_boxplot <- boxplot(df, main="Relative Signal BoxPlot map", ylab="Relative log expression signal-RMA", las=2)
 
 #Annotation
-ID <- rownames(gse)
+ID <- rownames(df)
 mart <- useEnsembl(biomart = "ensembl", 
                    dataset = "hsapiens_gene_ensembl", 
                    mirror = "useast")
@@ -89,16 +90,17 @@ geneFilt <- quantile(mean, p=0.02)
 geneFilt <- annotated[which(mean>geneFilt),]
 
 #limma
-#creating model
+#creating model + volcano plot
 ADorNor <- data.frame(patient = metadata$title)
 rownames(ADorNor) <- rownames(metadata)
 ADorNor$patient <- ifelse(str_detect(ADorNor$patient, regex(".AD")), 1, 0)
 matrix <- model.matrix(~ patient, ADorNor)
 fit <- limma::lmFit(remove_lower_0.02, matrix)
 efit <- eBayes(fit)
-genes <- geneNames(gse)
-limma_output <- topTable(efit, n = 50000)
-volcano <- EnhancedVolcano(toptable = limma_output, lab = rownames(limma_output), x = "logFC", y = "P.Value")
+lod <- -log10(efit[["p.value"]][,2])
+mtstat<- efit[["t"]][,2]
+limma_output <- topTable(efit, coef = 2, adjust = "fdr", n = 50000)
+volcano <- EnhancedVolcano(toptable = limma_output, lab = rownames(limma_output), x = "logFC", y = "P.Value", pCutoff = 0.05, FCcutoff = 0.5)
 
 #heatmap
 group <- data.frame(patient = metadata$title)
