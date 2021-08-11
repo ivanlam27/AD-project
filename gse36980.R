@@ -38,10 +38,10 @@ library(biomaRt)
 
 #Metadata import
 
-gse <- ReadAffy(celfile.path = "GSE36980_RAW_Hi/")
+gse <- ReadAffy(celfile.path = "GSE36980_RAW_FC/")
 gse36980 <- getGEO(filename = "GSE36980_series_matrix.txt")
 metadata <- gse36980@phenoData@data
-metadata <- metadata[63:80,]
+metadata <- metadata[1:33,]
 CN <- metadata[c("title")]
 CN_1 <- metadata[c("title")]
 
@@ -51,7 +51,7 @@ rma <- affy::rma(gse)
 
 #PCA plot
 
-colour <- c(rep('AD-Hi', 1), rep('AD-FC',15), rep('normal-FC', 18), rep('AD-TC', 10), rep('normal-TC', 19), rep('AD-Hi', 7), rep('normal-Hi', 10))
+colour <- c(rep('AD-FC', 15), rep('Normal-FC', 18))
 rawGSE <- exprs(rma)
 pca_OG <- prcomp(t(rawGSE), scale. = T, center = T)
 pca_OG_df <- as.data.frame(pca_OG$x)
@@ -60,8 +60,7 @@ PCA_raw <- ggplot(pca_OG_df, aes(x=PC1, y=PC2, color=colour))+ geom_point() + st
 
 
 #rma normalisation boxplot 
-norm <- rma(gse)
-df <- exprs(norm)
+df <- exprs(rma)
 rma_boxplot <- boxplot(df, main="Relative Signal BoxPlot map", ylab="Relative log expression signal-RMA", las=2)
 
 #Annotation
@@ -80,7 +79,7 @@ table_merge <- merge(x = duplicate_probeID, y = e, by.x = "affy_hugene_1_0_st_v1
 table_merge <- table_merge[!duplicated(table_merge$hgnc_symbol),]
 table_merge <- na.omit(table_merge)
 rownames(table_merge) <- table_merge$hgnc_symbol
-annotated <- table_merge[-c(1,2)]
+annotated <- table_merge[-c(dim1,2)]
 
 #Gene filtering
 
@@ -98,7 +97,7 @@ matrix <- model.matrix(~ patient, ADorNor)
 fit <- limma::lmFit(remove_lower_0.02, matrix)
 efit <- eBayes(fit)
 genes <- geneNames(gse)
-limma_output <- topTable(efit, adjust.method="fdr", sort.by=, n = 50000)
+limma_output <- topTable(efit, n = 50000)
 volcano <- EnhancedVolcano(toptable = limma_output, lab = rownames(limma_output), x = "logFC", y = "P.Value")
 
 #heatmap
@@ -124,7 +123,7 @@ element_names <- rownames(limma_output)
 names(logFC_vec) <- element_names
 
 #threshold + filtering (sorted, named, numeric vector)
-filtered_FC <- logFC_vec[logFC_vec > 1.5]
+filtered_FC <- logFC_vec[logFC_vec > 1]
 arrange_FC <- sort(filtered_FC, decreasing = TRUE)
 topDEG <- data.frame(arrange_FC)
 
