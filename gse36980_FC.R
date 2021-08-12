@@ -38,7 +38,8 @@ library(biomaRt)
 
 #Metadata import
 
-gse <- ReadAffy(celfile.path = "GSE36980_RAW_FC/")
+celFiles <- list.files("GSE36980_RAW_TL/", full =TRUE)
+gse <- read.celfiles(celFiles)
 gse36980 <- getGEO(filename = "GSE36980_series_matrix.txt")
 metadata <- gse36980@phenoData@data
 metadata <- metadata[1:33,]
@@ -58,6 +59,13 @@ pca_OG_df <- as.data.frame(pca_OG$x)
 PCA_raw <- ggplot(pca_OG_df, aes(x=PC1, y=PC2, color=colour))+ geom_point() + stat_ellipse() +
   labs(title = "Raw Data PCA Plot")
 
+PCA <- fviz_pca_ind(pca_OG,
+                    col.ind = colour,
+                    addEllipses = T,
+                    ellipse.type = 'confidence',
+                    repel = T,
+                    legend.title = 'Groups',
+                    title = 'FC')
 
 #rma normalisation boxplot 
 df <- exprs(rma)
