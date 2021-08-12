@@ -3,6 +3,7 @@ library(EnhancedVolcano)
 library(ggplot2)
 library(affyQCReport)
 library(GEOquery)
+library(PCAtools)
 library(simpleaffy)
 library(tidyverse)
 library(hgu133plus2.db)
@@ -32,9 +33,11 @@ library(oligo)
 library(simpleaffy)
 library(tidyverse)
 library(ggfortify)
+library(factoextra)
 #oligo
 library(RCurl)
 library(biomaRt)
+
 
 #Metadata import
 
@@ -56,9 +59,16 @@ colour <- c(rep('AD-TL', 10), rep('Normal-TL', 19))
 rawGSE <- exprs(rma)
 pca_OG <- prcomp(t(rawGSE), scale. = T, center = T)
 pca_OG_df <- as.data.frame(pca_OG$x)
-PCA_raw <- ggplot(pca_OG_df, aes(x=PC1, y=PC2, color=colour))+ geom_point() + stat_ellipse() +
+PCA_raw <- ggplot(pca_OG_df, aes(x=PC3, y=PC10, color=colour))+ geom_point() + stat_ellipse() +
   labs(title = "Raw Data PCA Plot")
 
+PCA <- fviz_pca_ind(pca_OG,
+             col.ind = colour,
+             addEllipses = T,
+             ellipse.type = 'confidence',
+             repel = T,
+             legend.title = 'Groups')
+               
 
 #rma normalisation boxplot 
 df <- exprs(rma)
