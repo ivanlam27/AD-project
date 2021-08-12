@@ -32,6 +32,7 @@ library(oligo)
 library(simpleaffy)
 library(tidyverse)
 library(ggfortify)
+library(PCAtools)
 #oligo
 library(RCurl)
 library(biomaRt)
@@ -66,6 +67,7 @@ PCA <- fviz_pca_ind(pca_OG,
                     repel = T,
                     legend.title = 'Groups',
                     title = 'FC')
+pairsplot(PCA)
 
 #rma normalisation boxplot 
 df <- exprs(rma)
@@ -149,17 +151,17 @@ selected <- unique(selected)
 rownames(selected) <- 1:nrow(selected)
 
 #gene ontology + boxplots
-CC <- enrichGO(selected$ENTREZID, OrgDb = org.Hs.eg.db, ont = "CC" , readable = T )
+CC <- enrichGO(selected$entrezgene_id, OrgDb = org.Hs.eg.db, ont = "CC" , readable = T )
 barplot_GO_CC <- barplot(CC)
 
-MF <- enrichGO(selected$ENTREZID, OrgDb = org.Hs.eg.db, ont = "MF" , readable = T )
+MF <- enrichGO(selected$entrezgene_id, OrgDb = org.Hs.eg.db, ont = "MF" , readable = T )
 barplot_GO_MF <- barplot(MF)
 
-BP <- enrichGO(selected$ENTREZID, OrgDb = org.Hs.eg.db, ont = "BP" , readable = T )
+BP <- enrichGO(selected$entrezgene_id, OrgDb = org.Hs.eg.db, ont = "BP" , readable = T )
 barplot_GO_BP <- barplot(BP)
 
 #KEGG
-KEGG <- enrichKEGG(selected$ENTREZID, pvalueCutoff = 0.05)
+KEGG <- enrichKEGG(selected$entrezgene_id, pvalueCutoff = 0.05)
 dotplot_KEGG <- dotplot(KEGG)
 
 #Gene-concept network
@@ -168,11 +170,11 @@ cnetplot_GCN <- cnetplot(convert, foldChange = arrange_FC, categorySize = "pvalu
 
 #Global/universal gene set enrichment analysis (GSEA)
 gene_set <- msigdbr(species = "Homo sapiens", category = "H")
-h <- gene_set %>% select (gs_name, entrez_gene)
+h <- gene_set %>% dplyr::select (gs_name, entrez_gene)
 
-removed_duplicate <- Entrezid_symbol[!duplicated(Entrezid_symbol$SYMBOL),]
+removed_duplicate <- Entrezid_symbol[!duplicated(Entrezid_symbol$hgnc_symbol),]
 removed_duplicate <- na.omit(removed_duplicate)
-rowname_symbol <- removed_duplicate$SYMBOL
+rowname_symbol <- removed_duplicate$hgnc_symbol
 rownames(removed_duplicate) <- rowname_symbol
 GSEA_merge <- merge(x = removed_duplicate, y = limma_output, by = "row.names")
 GSEA_logFC <- as.vector(GSEA_merge$logFC)
@@ -183,6 +185,6 @@ sorted <- sort(GSEA_logFC, decreasing = TRUE)
 GSEA_analysis <- GSEA(sorted, TERM2GENE = h)
 GSEA_plot <- gseaplot(GSEA_analysis, geneSetID = 2)
 
-for_module_6 <- names(filtered_FC)
-write.table(arrange_FC, file = 'DEG.txt')
+# for_module_6 <- names(filtered_FC)
+# write.table(arrange_FC, file = 'DEG.txt')
 
