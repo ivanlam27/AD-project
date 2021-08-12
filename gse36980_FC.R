@@ -72,7 +72,7 @@ df <- exprs(rma)
 rma_boxplot <- boxplot(df, main="Relative Signal BoxPlot map", ylab="Relative log expression signal-RMA", las=2)
 
 #Annotation
-ID <- rownames(gse)
+ID <- rownames(df)
 mart <- useEnsembl(biomart = "ensembl", 
                    dataset = "hsapiens_gene_ensembl", 
                    mirror = "useast")
@@ -87,7 +87,7 @@ table_merge <- merge(x = duplicate_probeID, y = e, by.x = "affy_hugene_1_0_st_v1
 table_merge <- table_merge[!duplicated(table_merge$hgnc_symbol),]
 table_merge <- na.omit(table_merge)
 rownames(table_merge) <- table_merge$hgnc_symbol
-annotated <- table_merge[-c(dim1,2)]
+annotated <- table_merge[-c(1,2)]
 
 #Gene filtering
 
@@ -104,9 +104,8 @@ ADorNor$patient <- ifelse(str_detect(ADorNor$patient, regex(".AD")), 1, 0)
 matrix <- model.matrix(~ patient, ADorNor)
 fit <- limma::lmFit(remove_lower_0.02, matrix)
 efit <- eBayes(fit)
-genes <- geneNames(gse)
 limma_output <- topTable(efit, n = 50000)
-volcano <- EnhancedVolcano(toptable = limma_output, lab = rownames(limma_output), x = "logFC", y = "P.Value")
+volcano <- EnhancedVolcano(toptable = limma_output, lab = rownames(limma_output), x = "logFC", y = "P.Value", pCutoff = 0.05, FCcutoff = 0.5)
 
 #heatmap
 group <- data.frame(patient = metadata$title)
@@ -131,16 +130,21 @@ element_names <- rownames(limma_output)
 names(logFC_vec) <- element_names
 
 #threshold + filtering (sorted, named, numeric vector)
-filtered_FC <- logFC_vec[logFC_vec > 1]
+filtered_FC <- logFC_vec[logFC_vec > 0.33]
 arrange_FC <- sort(filtered_FC, decreasing = TRUE)
 topDEG <- data.frame(arrange_FC)
 
 #selecting symbol and entrezid
-Entrezid_symbol <- AnnotationDbi::select(hgu133plus2.db, keys = ID, 
-                                         columns = c("SYMBOL", "ENTREZID"))
-df_entrezid <- Entrezid_symbol %>% dplyr::select("SYMBOL", "ENTREZID")
+Entrezid_symbol <- getBM(
+  attributes = c('hgnc_symbol', 'entrezgene_id'),
+  filters = 'affy_hugene_1_0_st_v1',
+  values = ID,
+  mart = mart
+)
+df_entrezid <- Entrezid_symbol %>% dplyr::select('hgnc_symbol', "entrezgene_id")
+df_entrezid <- na.omit(df_entrezid)
 names <- names(arrange_FC)
-selected <- df_entrezid[df_entrezid$SYMBOL %in% names, ]
+selected <- df_entrezid[df_entrezid$hgnc_symbol %in% names, ]
 selected <- unique(selected)
 rownames(selected) <- 1:nrow(selected)
 
