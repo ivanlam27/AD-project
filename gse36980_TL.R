@@ -59,9 +59,6 @@ colour <- c(rep('AD-TL', 10), rep('Normal-TL', 19))
 rawGSE <- exprs(rma)
 pca_OG <- prcomp(t(rawGSE), scale. = T, center = T)
 pca_OG_df <- as.data.frame(pca_OG$x)
-PCA_raw <- ggplot(pca_OG_df, aes(x=PC3, y=PC10, color=colour))+ geom_point() + stat_ellipse() +
-  labs(title = "Raw Data PCA Plot")
-
 PCA <- fviz_pca_ind(pca_OG,
              col.ind = colour,
              addEllipses = T,
@@ -190,6 +187,3 @@ GSEA_plot <- gseaplot(GSEA_analysis, geneSetID = 2)
 
 # for_module_6 <- names(filtered_FC)
 # write.table(arrange_FC, file = 'DEG.txt')
-
-#asdfasdf
-#sdasdlf
