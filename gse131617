@@ -1,0 +1,150 @@
+library(WGCNA)
+library(EnhancedVolcano)
+library(ggplot2)
+library(GEOquery)
+library(tidyverse)
+library(hgu133plus2.db)
+library(org.Hs.eg.db)
+library(AnnotationDbi)
+library(limma)
+library(pheatmap)
+library(edgeR)
+library(Biobase)
+library(GEOquery)
+library(utilsIPEA)
+library(clusterProfiler)
+library(enrichplot)
+library(magrittr)
+library(tidyr)
+library(ggnewscale)
+library(msigdbr)
+library(readxl)
+library(umap)
+#PCA
+library(tidyverse)
+library(ggfortify)
+
+library(oligo)
+library(dplyr)
+library(pd.huex.1.0.st.v2)
+library(RCurl)
+library(biomaRt)
+library(factoextra)
+
+
+#Metadata import
+
+celfiles <- list.files("GSE131617_EC_RAW/1", full = TRUE)
+gse <- read.celfiles(celfiles)
+gse131617ec <- getGEO(filename = "GSE131617-GPL5175_series_matrix.txt")
+metadata <- gse131617ec@phenoData@data
+
+metadata_all <-metadata[c("title","source_name_ch1","characteristics_ch1.2","characteristics_ch1.3")]
+metadata_ec <- metadata_all[ which(metadata_all$characteristics_ch1.2=='tissue region: Entorhinal cortex (EC)'),]
+metadata_ec_1 <- metadata_ec[which(metadata_ec$source_name_ch1 == 'Braak NFT stage 0' |metadata_ec$source_name_ch1 == 'Braak NFT stage V-VI' ),]
+
+#CN <- metadata[c("title")]
+#CN_1 <- metadata[c("title")]
+
+#Data normalisation
+
+rma <- rma(gse) 
+
+#boxplot 
+df <- exprs(rma)
+#rma_boxplot <- boxplot(df, main="Relative Signal BoxPlot map", ylab="Relative log expression signal-RMA", las=2)
+
+#PCA plot
+
+#logtrans <- log10(df)
+colour <- c(rep('Normal-EC',13), rep('Severe AD-EC',19))
+pca_OG <- prcomp(t(df), scale = T, center = T)
+pca_OG_df <- as.data.frame(pca_OG$x)
+ggplot(pca_OG_df, aes(x=PC1, y=PC2, color=colour))+ geom_point() + stat_ellipse() + labs(title = "Normalised Data PCA Plot")
+
+
+fviz_pca_ind(pca_OG,
+                    col.ind = colour,
+                    addEllipses = T,
+                    ellipse.type = 'confidence',
+                    repel = T,
+                    legend.title = 'Groups')
+
+#Annotation
+ID <- rownames(df)
+mart <- useEnsembl(biomart = "ensembl", 
+                   dataset = "hsapiens_gene_ensembl", 
+                   mirror = "useast")
+gene_list <- getBM(attributes=c('affy_huex_1_0_st_v2', 'hgnc_symbol'), 
+                   filters = 'affy_huex_1_0_st_v2', 
+                   values = ID, 
+                   mart = mart)
+gene_list_df <- as.data.frame(gene_list)
+
+duplicate_probeID <- gene_list_df[!duplicated(gene_list_df$hgnc_symbol),]
+#df <- exprs(rma)
+table_merge <- merge(x = duplicate_probeID, y = df, by.x = "affy_huex_1_0_st_v2", by.y = "row.names")
+table_merge <- table_merge[!duplicated(table_merge$hgnc_symbol),]
+table_merge <- na.omit(table_merge)
+rownames(table_merge) <- table_merge$hgnc_symbol
+annotated <- table_merge[-c(1,2)]
+
+mean <- rowMeans(annotated)
+remove_lower_0.02 <- annotated[which(mean > 0.02),]
+geneFilt <- quantile(mean, p=0.02)
+geneFilt <- annotated[which(mean>geneFilt),]
+
+ADorNor <- data.frame(patient = metadata_ec_1$title)
+rownames(ADorNor) <- rownames(metadata_ec_1)
+ADorNor$patient <- ifelse(str_detect(ADorNor$patient, regex("V-VI")), 1, 0)
+matrix <- model.matrix(~ patient, ADorNor)
+fit <- limma::lmFit(geneFilt, matrix)
+efit <- eBayes(fit)
+lod <- -log10(efit[["p.value"]][,2])
+mtstat<- efit[["t"]][,2]
+limma_output <- topTable(efit, coef = 2, adjust = "fdr", n = 5000)
+
+#volcano plot
+EnhancedVolcano(toptable = limma_output, lab = rownames(limma_output), x = "logFC", y = "P.Value", pCutoff = 0.05, FCcutoff = 0.2)
+
+
+
+
+library(pheatmap)
+group <- data.frame(patient = metadata_ec_1$title)
+top50 <- topTable(efit, number=50) 
+filt_50 <- data.frame(geneFilt[rownames(geneFilt) %in% rownames(top50),])
+heatmap <- pheatmap(filt_50, main="Top 50 DEG", 
+                         labels_row = rownames(filt_50),  
+                         labels_col = colnames(filt_50),
+                         annotation_row=group, 
+                         annotation_col=group, 
+                         annotation_colors=list(patient=c(AD ="red", Normal="blue")))
+
+top10 <- rownames(topTable(efit, n = 10))
+
+#MODULE 5
+#DEG 
+logFC <- limma_output %>% dplyr::select('logFC')
+logFC_vec <- as.vector(logFC$logFC)
+element_names <- rownames(limma_output)
+names(logFC_vec) <- element_names
+
+#threshold + filtering (sorted, named, numeric vector)
+filtered_FC <- logFC_vec[logFC_vec > 0.1]
+arrange_FC <- sort(filtered_FC, decreasing = TRUE)
+topDEG <- data.frame(arrange_FC)
+
+#selecting symbol and entrezid
+Entrezid_symbol <- getBM(
+  attributes = c('hgnc_symbol', 'entrezgene_id'),
+  filters = 'affy_huex_1_0_st_v2',
+  values = ID,
+  mart = mart
+)
+df_entrezid <- Entrezid_symbol %>% dplyr::select('hgnc_symbol', "entrezgene_id")
+df_entrezid <- na.omit(df_entrezid)
+names <- names(arrange_FC)
+selected <- df_entrezid[df_entrezid$hgnc_symbol %in% names, ]
+selected <- unique(selected)
+rownames(selected) <- 1:nrow(selected)
