@@ -39,7 +39,7 @@ library(biomaRt)
 
 #Metadata import
 
-celFiles <- list.files("GSE36980_RAW_TL/", full =TRUE)
+celFiles <- list.files("GSE36980_RAW_FC/", full =TRUE)
 gse <- read.celfiles(celFiles)
 gse36980 <- getGEO(filename = "GSE36980_series_matrix.txt")
 metadata <- gse36980@phenoData@data
@@ -49,7 +49,7 @@ CN_1 <- metadata[c("title")]
 
 #Data normalisation
 
-rma <- affy::rma(gse) 
+rma <- rma(gse) 
 
 #PCA plot
 
@@ -57,9 +57,6 @@ colour <- c(rep('AD-FC', 15), rep('Normal-FC', 18))
 rawGSE <- exprs(rma)
 pca_OG <- prcomp(t(rawGSE), scale. = T, center = T)
 pca_OG_df <- as.data.frame(pca_OG$x)
-PCA_raw <- ggplot(pca_OG_df, aes(x=PC1, y=PC2, color=colour))+ geom_point() + stat_ellipse() +
-  labs(title = "Raw Data PCA Plot")
-
 PCA <- fviz_pca_ind(pca_OG,
                     col.ind = colour,
                     addEllipses = T,
@@ -67,11 +64,10 @@ PCA <- fviz_pca_ind(pca_OG,
                     repel = T,
                     legend.title = 'Groups',
                     title = 'FC')
-pairsplot(PCA)
 
 #rma normalisation boxplot 
-df <- exprs(rma)
-rma_boxplot <- boxplot(df, main="Relative Signal BoxPlot map", ylab="Relative log expression signal-RMA", las=2)
+
+rma_boxplot <- boxplot(rawGSE, main="Relative Signal BoxPlot map", ylab="Relative log expression signal-RMA", las=2)
 
 #Annotation
 ID <- rownames(df)
@@ -161,7 +157,7 @@ BP <- enrichGO(selected$entrezgene_id, OrgDb = org.Hs.eg.db, ont = "BP" , readab
 barplot_GO_BP <- barplot(BP)
 
 #KEGG
-KEGG <- enrichKEGG(selected$entrezgene_id, pvalueCutoff = 0.05)
+KEGG <- enrichKEGG(selected$entrezgene_id, pvalueCutoff = 0.08)
 dotplot_KEGG <- dotplot(KEGG)
 
 #Gene-concept network
